@@ -75,10 +75,9 @@ func (secret SecretBuilder) AsKube() (kubeSecret *v1.Secret) {
 	kubeSecret.Labels = secret.labels
 	kubeSecret.Annotations = secret.annotations
 	if secret.keys != nil {
-		kubeSecret.Data = make(map[string][]byte)
+		kubeSecret.StringData = make(map[string]string)
 		for key, value := range secret.keys {
-			d := base64.StdEncoding.EncodeToString([]byte(value))
-			kubeSecret.Data[key] = []byte(d)
+			kubeSecret.StringData[key] = value
 		}
 	}
 	return
