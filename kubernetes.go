@@ -1,4 +1,4 @@
-package kubernetes
+package kube_builders
 
 import (
 	"k8s.io/client-go/kubernetes"
