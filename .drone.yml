@@ -1,0 +1,11 @@
+workspace:
+  base: /go
+  path: src/github.com/${DRONE_REPO}
+
+pipeline:
+  test:
+    image: golang
+    commands:
+    - go get github.com/onsi/ginkgo/ginkgo github.com/Masterminds/glide
+    - glide install -v
+    - ginkgo -v
