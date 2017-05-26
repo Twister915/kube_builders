@@ -59,21 +59,23 @@ var _ = Describe("Secret Generator", func() {
 			secret = secret.Value(key, value)
 		}
 		kubeSecret := secret.AsKube()
-		_, err := fakeKubernetes.CoreV1().Secrets(kubeSecret.Namespace).Create(kubeSecret)
-		Expect(err).ToNot(HaveOccurred())
-		By("making it look like kubernetes gave it to us")
 		kubeSecret.Data = make(map[string][]byte)
 		for key, value := range kubeSecret.StringData {
 			kubeSecret.Data[key] = []byte(base64.StdEncoding.EncodeToString([]byte(value)))
 		}
+		kubeSecret.StringData = nil
+		_, err := fakeKubernetes.CoreV1().Secrets(kubeSecret.Namespace).Create(kubeSecret)
+		Expect(err).ToNot(HaveOccurred())
+		By("making it look like kubernetes gave it to us")
+
 
 		By("getting it from Kubernetes")
-		_, exists, err := kubeTarget.GetSecret(secretName, namespace)
+		data, exists, err := kubeTarget.GetSecret(secretName, namespace)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists).To(BeTrue())
 		By("having the right data")
 		for key, value := range secretData {
-			Expect(secretData).To(HaveKeyWithValue(key, value))
+			Expect(data).To(HaveKeyWithValue(key, []byte(value)))
 		}
 	})
 })

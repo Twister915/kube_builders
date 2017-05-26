@@ -41,7 +41,7 @@ func (kube *KubeTarget) GetSecret(name, namespace string) (data map[string][]byt
 	exists = true
 	for key, value := range secret.Data {
 		realValue := make([]byte, base64.StdEncoding.DecodedLen(len(value)))
-		n, err := base64.StdEncoding.Decode(value, realValue)
+		n, err := base64.StdEncoding.Decode(realValue, value)
 		realValue = realValue[:n]
 		if err != nil {
 			err = errors.Wrapf(err, "could not decode secret data at %s", key)
