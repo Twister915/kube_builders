@@ -31,7 +31,7 @@ var _ = Describe("Service", func() {
 
 	It("deploys a service", func() {
 		By("creating a service")
-		svc := kubeTarget.Service(serviceName, serviceNamespace).Selector(selectorKey, selectorValue).PortByNumber(portName, port)
+		svc := kubeTarget.Service(serviceName, serviceNamespace).Selector(selectorKey, selectorValue).PortByNumber(portName, port, port)
 		service := svc.AsKube()
 		Expect(service.Name).To(Equal(serviceName))
 		Expect(service.Namespace).To(Equal(serviceNamespace))
@@ -41,6 +41,7 @@ var _ = Describe("Service", func() {
 		p := service.Spec.Ports[0]
 		Expect(p.Name).To(Equal(portName))
 		Expect(p.TargetPort.IntValue()).To(BeEquivalentTo(port))
+		Expect(p.Port).To(BeEquivalentTo(port))
 
 		By("deploying it to kubernetes")
 		_, err := svc.Push()

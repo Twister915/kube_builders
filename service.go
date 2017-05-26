@@ -17,8 +17,12 @@ type ServiceBuilder struct {
 
 	labels      map[string]string
 	annotations map[string]string
-	ports       map[string]int
-	portsByName map[string]string
+	ports       map[string]portSpec
+}
+
+type portSpec struct {
+	target intstr.IntOrString
+	port int
 }
 
 func (kube *KubeTarget) Service(name, namespace string) ServiceBuilder {
@@ -45,13 +49,13 @@ func (svc ServiceBuilder) Annotation(annotation string, value interface{}) Servi
 	return svc
 }
 
-func (svc ServiceBuilder) PortByNumber(name string, port int) ServiceBuilder {
-	setAtMapDirect(&svc.ports, name, port)
+func (svc ServiceBuilder) PortByNumber(name string, target, port int) ServiceBuilder {
+	setAtMapDirect(&svc.ports, name, portSpec{port: port, target: intstr.FromInt(target)})
 	return svc
 }
 
-func (svc ServiceBuilder) PortByName(name, port string) ServiceBuilder {
-	setAtMap(&svc.portsByName, name, port)
+func (svc ServiceBuilder) PortByName(name, target string, port int) ServiceBuilder {
+	setAtMapDirect(&svc.ports, name, portSpec{port: port, target: intstr.FromString(target)})
 	return svc
 }
 
@@ -65,12 +69,7 @@ func (svc ServiceBuilder) AsKube() (service *v1.Service) {
 	service.Spec.Selector = svc.selector
 	if svc.ports != nil {
 		for portName, port := range svc.ports {
-			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{Name: portName, TargetPort: intstr.FromInt(port)})
-		}
-	}
-	if svc.portsByName != nil {
-		for portName, portId := range svc.portsByName {
-			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{Name: portName, TargetPort: intstr.FromString(portId)})
+			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{Name: portName, TargetPort: port.target, Port: int32(port.port)})
 		}
 	}
 	return
