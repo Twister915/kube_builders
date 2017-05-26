@@ -3,7 +3,6 @@ package kube_builders_test
 import (
 	. "github.com/Twister915/kube_builders"
 
-	"encoding/base64"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes"
@@ -37,7 +36,7 @@ var _ = Describe("Secret Generator", func() {
 		Expect(kubeSecret.Name).To(Equal(secretName))
 		Expect(kubeSecret.Namespace).To(Equal(namespace))
 		for key, value := range secretData {
-			Expect(kubeSecret.Data).To(HaveKeyWithValue(key, []byte(base64.StdEncoding.EncodeToString([]byte(value)))))
+			Expect(kubeSecret.Data).To(HaveKeyWithValue(key, []byte(value)))
 		}
 	})
 
