@@ -55,4 +55,37 @@ var _ = Describe("Container Builder", func() {
 			Expect(withDocker.VolumeMounts).To(ContainElement(v1.VolumeMount{Name: "docker.sock", MountPath: "/var/run/docker.sock", ReadOnly: true}))
 		})
 	})
+
+	It("can set config map env var", func() {
+		By("creating it in the builder")
+		container = container.ConfigMapRef("TEST_CONFIG_MAP", "cf", "key")
+		kubeContainer = container.AsKube()
+		By("existing in the env array for the kube container")
+		var cfSelector v1.ConfigMapKeySelector
+		cfSelector.Name = "cf"
+		cfSelector.Key = "key"
+		Expect(kubeContainer.Env).To(ContainElement(v1.EnvVar{Name: "TEST_CONFIG_MAP", ValueFrom: &v1.EnvVarSource{ConfigMapKeyRef: &cfSelector}}))
+	})
+
+	It("can set resource env var", func() {
+		By("creating it in the builder")
+		container = container.ResourceRef("TEST_RESOURCE", "rsc")
+		kubeContainer = container.AsKube()
+
+		By("existing in the env array for the kube container")
+		var rscSelector v1.ResourceFieldSelector
+		rscSelector.Resource = "rsc"
+		Expect(kubeContainer.Env).To(ContainElement(v1.EnvVar{Name: "TEST_RESOURCE", ValueFrom: &v1.EnvVarSource{ResourceFieldRef: &rscSelector}}))
+	})
+
+	It("can set field env var", func() {
+		By("creating it in the builder")
+		container = container.FieldRef("TEST_FIELD", "field")
+		kubeContainer = container.AsKube()
+
+		By("existing in the env array for the kube container")
+		var fieldSelector v1.ObjectFieldSelector
+		fieldSelector.FieldPath = "field"
+		Expect(kubeContainer.Env).To(ContainElement(v1.EnvVar{Name: "TEST_FIELD", ValueFrom: &v1.EnvVarSource{FieldRef: &fieldSelector}}))
+	})
 })
