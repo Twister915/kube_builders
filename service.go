@@ -2,6 +2,7 @@ package kube_builders
 
 import (
 	"github.com/pkg/errors"
+	kube_errors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/util/intstr"
 )
@@ -22,7 +23,7 @@ type ServiceBuilder struct {
 
 type portSpec struct {
 	target intstr.IntOrString
-	port int
+	port   int
 }
 
 func (kube *KubeTarget) Service(name, namespace string) ServiceBuilder {
@@ -77,7 +78,17 @@ func (svc ServiceBuilder) AsKube() (service *v1.Service) {
 
 func (svc ServiceBuilder) Push() (service *v1.Service, err error) {
 	service = svc.AsKube()
-	_, err = svc.kube.iface.CoreV1().Services(svc.namespace).Create(service)
+	services := svc.kube.iface.CoreV1().Services(svc.namespace)
+	_, err = services.Get(service.Name)
+	var f func(*v1.Service) (*v1.Service, error)
+	if kube_errors.IsNotFound(err) {
+		f = services.Create
+	} else if err != nil {
+		return
+	} else {
+		f = services.Update
+	}
+	_, err = f(service)
 	if err != nil {
 		err = errors.Wrapf(err, "creating service %s", svc.name)
 	}
