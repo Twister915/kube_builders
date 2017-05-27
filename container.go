@@ -7,7 +7,7 @@ type ContainerBuilder struct {
 	image string
 
 	envString map[string]string
-	envSecret map[string]*v1.EnvVarSource
+	envRefs   map[string]*v1.EnvVarSource
 	ports     map[string]uint16
 
 	mountDocker bool
@@ -32,7 +32,32 @@ func (container ContainerBuilder) Secret(name, secretName, secretKey string) Con
 	selector.Name = secretName
 	selector.Key = secretKey
 
-	setAtMapDirect(&container.envSecret, name, &v1.EnvVarSource{SecretKeyRef: &selector})
+	setAtMapDirect(&container.envRefs, name, &v1.EnvVarSource{SecretKeyRef: &selector})
+	return container
+}
+
+func (container ContainerBuilder) FieldRef(name, path string) ContainerBuilder {
+	var selector v1.ObjectFieldSelector
+	selector.FieldPath = path
+
+	setAtMapDirect(&container.envRefs, name, v1.EnvVarSource{FieldRef: &selector})
+	return container
+}
+
+func (container ContainerBuilder) ConfigMapRef(name, configMapName, configMapKey string) ContainerBuilder {
+	var selector v1.ConfigMapKeySelector
+	selector.Name = configMapName
+	selector.Key = configMapKey
+
+	setAtMapDirect(&container.envRefs, name, v1.EnvVarSource{ConfigMapKeyRef: &selector})
+	return container
+}
+
+func (container ContainerBuilder) ResourceRef(name, resource string) ContainerBuilder {
+	var selector v1.ResourceFieldSelector
+	selector.Resource = resource
+
+	setAtMapDirect(&container.envRefs, name, v1.EnvVarSource{ResourceFieldRef: &selector})
 	return container
 }
 
@@ -57,8 +82,8 @@ func (container ContainerBuilder) AsKube() (kubeContainer v1.Container) {
 		}
 	}
 
-	if container.envSecret != nil {
-		for name, value := range container.envSecret {
+	if container.envRefs != nil {
+		for name, value := range container.envRefs {
 			*envTarget = append(*envTarget, v1.EnvVar{Name: name, ValueFrom: value})
 		}
 	}
