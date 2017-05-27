@@ -79,7 +79,7 @@ func (svc ServiceBuilder) AsKube() (service *v1.Service) {
 func (svc ServiceBuilder) Push() (service *v1.Service, err error) {
 	service = svc.AsKube()
 	services := svc.kube.iface.CoreV1().Services(svc.namespace)
-	_, err = services.Get(service.Name)
+	svcFromKube, err := services.Get(service.Name)
 	var f func(*v1.Service) (*v1.Service, error)
 	if kube_errors.IsNotFound(err) {
 		f = services.Create
@@ -87,6 +87,9 @@ func (svc ServiceBuilder) Push() (service *v1.Service, err error) {
 		return
 	} else {
 		f = services.Update
+		svcFromKube.Spec.Ports = service.Spec.Ports
+		svcFromKube.Spec.Type = service.Spec.Type
+		service = svcFromKube
 	}
 	_, err = f(service)
 	if err != nil {
