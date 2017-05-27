@@ -40,7 +40,7 @@ func (container ContainerBuilder) FieldRef(name, path string) ContainerBuilder {
 	var selector v1.ObjectFieldSelector
 	selector.FieldPath = path
 
-	setAtMapDirect(&container.envRefs, name, v1.EnvVarSource{FieldRef: &selector})
+	setAtMapDirect(&container.envRefs, name, &v1.EnvVarSource{FieldRef: &selector})
 	return container
 }
 
@@ -49,7 +49,7 @@ func (container ContainerBuilder) ConfigMapRef(name, configMapName, configMapKey
 	selector.Name = configMapName
 	selector.Key = configMapKey
 
-	setAtMapDirect(&container.envRefs, name, v1.EnvVarSource{ConfigMapKeyRef: &selector})
+	setAtMapDirect(&container.envRefs, name, &v1.EnvVarSource{ConfigMapKeyRef: &selector})
 	return container
 }
 
@@ -57,7 +57,7 @@ func (container ContainerBuilder) ResourceRef(name, resource string) ContainerBu
 	var selector v1.ResourceFieldSelector
 	selector.Resource = resource
 
-	setAtMapDirect(&container.envRefs, name, v1.EnvVarSource{ResourceFieldRef: &selector})
+	setAtMapDirect(&container.envRefs, name, &v1.EnvVarSource{ResourceFieldRef: &selector})
 	return container
 }
 
