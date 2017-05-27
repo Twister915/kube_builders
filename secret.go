@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	kube_errors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/v1"
+	"github.com/davecgh/go-spew/spew"
 )
 
 type SecretBuilder struct {
@@ -38,6 +39,7 @@ func (kube *KubeTarget) GetSecret(name, namespace string) (data map[string][]byt
 		err = errors.Wrapf(err, "getting secret")
 		return
 	}
+	spew.Dump(secret)
 	exists = true
 	for key, value := range secret.Data {
 		realValue := make([]byte, base64.StdEncoding.DecodedLen(len(value)))
