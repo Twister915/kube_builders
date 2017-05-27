@@ -1,7 +1,6 @@
 package kube_builders
 
 import (
-	"encoding/base64"
 	"github.com/pkg/errors"
 	kube_errors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/v1"
@@ -40,13 +39,7 @@ func (kube *KubeTarget) GetSecret(name, namespace string) (data map[string][]byt
 	}
 	exists = true
 	for key, value := range secret.Data {
-		realValue := make([]byte, base64.StdEncoding.DecodedLen(len(value)))
-		n, err := base64.StdEncoding.Decode(realValue, value)
-		realValue = realValue[:n]
-		if err != nil {
-			err = errors.Wrapf(err, "could not decode secret data at %s", key)
-		}
-		data[key] = realValue
+		data[key] = value
 	}
 	return
 }
