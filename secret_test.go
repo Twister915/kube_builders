@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	"encoding/base64"
 )
 
 var _ = Describe("Secret Generator", func() {
@@ -61,7 +60,7 @@ var _ = Describe("Secret Generator", func() {
 		kubeSecret := secret.AsKube()
 		kubeSecret.Data = make(map[string][]byte)
 		for key, value := range kubeSecret.StringData {
-			kubeSecret.Data[key] = []byte(base64.StdEncoding.EncodeToString([]byte(value)))
+			kubeSecret.Data[key] = []byte(value)
 		}
 		kubeSecret.StringData = nil
 		_, err := fakeKubernetes.CoreV1().Secrets(kubeSecret.Namespace).Create(kubeSecret)
