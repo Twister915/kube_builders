@@ -2,7 +2,8 @@ package kube_builders
 
 import (
 	"github.com/pkg/errors"
-	kube_errors "k8s.io/client-go/pkg/api/errors"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 )
@@ -75,7 +76,7 @@ func (deployment DeploymentBuilder) Push() (kubeDeployment *v1beta1.Deployment, 
 	kubeDeployment = deployment.AsKube()
 	deployments := deployment.kube.iface.ExtensionsV1beta1().Deployments(deployment.namespace)
 
-	_, err = deployments.Get(deployment.name)
+	_, err = deployments.Get(deployment.name, meta_v1.GetOptions{})
 	if kube_errors.IsNotFound(err) {
 		_, err = deployments.Create(kubeDeployment)
 		if err != nil {

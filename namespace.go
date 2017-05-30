@@ -2,12 +2,13 @@ package kube_builders
 
 import (
 	"github.com/pkg/errors"
-	kube_errors "k8s.io/client-go/pkg/api/errors"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/api/v1"
 )
 
 func (kube *KubeTarget) EnsureNamespaceExists(name string, b func(builder NamespaceBuilder) NamespaceBuilder) (err error) {
-	_, err = kube.iface.CoreV1().Namespaces().Get(name)
+	_, err = kube.iface.CoreV1().Namespaces().Get(name, meta_v1.GetOptions{})
 
 	if kube_errors.IsNotFound(err) {
 		builder := kube.CreateNamespace(name)

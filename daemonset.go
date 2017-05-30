@@ -2,9 +2,10 @@ package kube_builders
 
 import (
 	"github.com/pkg/errors"
-	kube_errors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type DaemonSetBuilder struct {
@@ -13,9 +14,10 @@ type DaemonSetBuilder struct {
 	name      string
 	namespace string
 
-	pod         v1.Pod
-	labels      map[string]string
-	annotations map[string]string
+	pod            v1.Pod
+	labels         map[string]string
+	annotations    map[string]string
+	rollingUpdates bool
 }
 
 func (pod PodBuilder) DaemonSet(name string) DaemonSetBuilder {
@@ -32,6 +34,11 @@ func (ds DaemonSetBuilder) Annotation(annotation string, value interface{}) Daem
 	return ds
 }
 
+func (ds DaemonSetBuilder) RollingUpdates() DaemonSetBuilder {
+	ds.rollingUpdates = true
+	return ds
+}
+
 func (ds DaemonSetBuilder) AsKube() (kubeDs *v1beta1.DaemonSet) {
 	kubeDs = new(v1beta1.DaemonSet)
 	kubeDs.Name = ds.name
@@ -40,6 +47,9 @@ func (ds DaemonSetBuilder) AsKube() (kubeDs *v1beta1.DaemonSet) {
 	kubeDs.Spec.Template.Spec = ds.pod.Spec
 	kubeDs.Spec.Template.Annotations = ds.pod.Annotations
 	kubeDs.Spec.Template.Labels = ds.pod.Labels
+	if ds.rollingUpdates {
+		kubeDs.Spec.UpdateStrategy.Type = v1beta1.RollingUpdateDaemonSetStrategyType
+	}
 
 	kubeDs.Labels = ds.labels
 	kubeDs.Annotations = ds.annotations
@@ -50,7 +60,7 @@ func (ds DaemonSetBuilder) Push() (kubeDs *v1beta1.DaemonSet, err error) {
 	kubeDs = ds.AsKube()
 	dses := ds.kube.iface.ExtensionsV1beta1().DaemonSets(ds.namespace)
 
-	_, err = dses.Get(ds.name)
+	_, err = dses.Get(ds.name, meta_v1.GetOptions{})
 	if kube_errors.IsNotFound(err) {
 		_, err = dses.Create(kubeDs)
 		if err != nil {

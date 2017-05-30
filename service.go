@@ -2,9 +2,10 @@ package kube_builders
 
 import (
 	"github.com/pkg/errors"
-	kube_errors "k8s.io/client-go/pkg/api/errors"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type ServiceBuilder struct {
@@ -79,7 +80,7 @@ func (svc ServiceBuilder) AsKube() (service *v1.Service) {
 func (svc ServiceBuilder) Push() (service *v1.Service, err error) {
 	service = svc.AsKube()
 	services := svc.kube.iface.CoreV1().Services(svc.namespace)
-	svcFromKube, err := services.Get(service.Name)
+	svcFromKube, err := services.Get(service.Name, meta_v1.GetOptions{})
 	var f func(*v1.Service) (*v1.Service, error)
 	if kube_errors.IsNotFound(err) {
 		f = services.Create

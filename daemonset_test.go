@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/pkg/api/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Daemonset Builder", func() {
@@ -62,7 +63,7 @@ var _ = Describe("Daemonset Builder", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("being on kubernetes")
-		_, err = fakeKubernetes.ExtensionsV1beta1().DaemonSets(namespace).Get(name)
+		_, err = fakeKubernetes.ExtensionsV1beta1().DaemonSets(namespace).Get(name, meta_v1.GetOptions{})
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

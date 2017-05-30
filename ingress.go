@@ -2,9 +2,10 @@ package kube_builders
 
 import (
 	"github.com/pkg/errors"
-	kube_errors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
-	"k8s.io/client-go/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type IngressBuilder struct {
@@ -83,7 +84,7 @@ func (ing IngressBuilder) AsKube() (kubeIng *v1beta1.Ingress) {
 func (ing IngressBuilder) Push() (kubeIng *v1beta1.Ingress, err error) {
 	kubeIng = ing.AsKube()
 	ingresses := ing.kube.iface.ExtensionsV1beta1().Ingresses(ing.namespace)
-	foundIng, err := ingresses.Get(ing.name)
+	foundIng, err := ingresses.Get(ing.name, meta_v1.GetOptions{})
 	var f func(*v1beta1.Ingress) (*v1beta1.Ingress, error)
 	if kube_errors.IsNotFound(err) {
 		f = ingresses.Create

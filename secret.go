@@ -2,7 +2,8 @@ package kube_builders
 
 import (
 	"github.com/pkg/errors"
-	kube_errors "k8s.io/client-go/pkg/api/errors"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/api/v1"
 )
 
@@ -18,7 +19,7 @@ type SecretBuilder struct {
 }
 
 func (kube *KubeTarget) DoesSecretExist(name, namespace string) (exists bool, err error) {
-	_, err = kube.iface.CoreV1().Secrets(namespace).Get(name)
+	_, err = kube.iface.CoreV1().Secrets(namespace).Get(name, meta_v1.GetOptions{})
 	if kube_errors.IsNotFound(err) {
 		err = nil
 	} else if err == nil {
@@ -29,7 +30,7 @@ func (kube *KubeTarget) DoesSecretExist(name, namespace string) (exists bool, er
 
 func (kube *KubeTarget) GetSecret(name, namespace string) (data map[string][]byte, exists bool, err error) {
 	data = make(map[string][]byte)
-	secret, err := kube.iface.CoreV1().Secrets(namespace).Get(name)
+	secret, err := kube.iface.CoreV1().Secrets(namespace).Get(name, meta_v1.GetOptions{})
 	if kube_errors.IsNotFound(err) {
 		err = nil
 		return
