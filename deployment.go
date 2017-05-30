@@ -6,6 +6,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type DeploymentBuilder struct {
@@ -74,9 +75,14 @@ func (deployment DeploymentBuilder) AsKube() (kubeDeployment *v1beta1.Deployment
 
 func (deployment DeploymentBuilder) Push() (kubeDeployment *v1beta1.Deployment, err error) {
 	kubeDeployment = deployment.AsKube()
-	deployments := deployment.kube.iface.ExtensionsV1beta1().Deployments(deployment.namespace)
+	err = PushDeployment(kubeDeployment, deployment.kube.iface)
+	return
+}
 
-	_, err = deployments.Get(deployment.name, meta_v1.GetOptions{})
+func PushDeployment(kubeDeployment *v1beta1.Deployment, iface kubernetes.Interface) (err error) {
+	deployments := iface.ExtensionsV1beta1().Deployments(kubeDeployment.Namespace)
+
+	_, err = deployments.Get(kubeDeployment.Name, meta_v1.GetOptions{})
 	if kube_errors.IsNotFound(err) {
 		_, err = deployments.Create(kubeDeployment)
 		if err != nil {
@@ -90,6 +96,5 @@ func (deployment DeploymentBuilder) Push() (kubeDeployment *v1beta1.Deployment, 
 			err = errors.Wrapf(err, "failed to update deployment")
 		}
 	}
-
 	return
 }

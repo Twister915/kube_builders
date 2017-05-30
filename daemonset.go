@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type DaemonSetBuilder struct {
@@ -58,9 +59,14 @@ func (ds DaemonSetBuilder) AsKube() (kubeDs *v1beta1.DaemonSet) {
 
 func (ds DaemonSetBuilder) Push() (kubeDs *v1beta1.DaemonSet, err error) {
 	kubeDs = ds.AsKube()
-	dses := ds.kube.iface.ExtensionsV1beta1().DaemonSets(ds.namespace)
+	err = PushDaemonSet(kubeDs, ds.kube.iface)
+	return
+}
 
-	_, err = dses.Get(ds.name, meta_v1.GetOptions{})
+func PushDaemonSet(kubeDs *v1beta1.DaemonSet, iface kubernetes.Interface) (err error) {
+	dses := iface.ExtensionsV1beta1().DaemonSets(kubeDs.Namespace)
+
+	_, err = dses.Get(kubeDs.Name, meta_v1.GetOptions{})
 	if kube_errors.IsNotFound(err) {
 		_, err = dses.Create(kubeDs)
 		if err != nil {
@@ -74,6 +80,5 @@ func (ds DaemonSetBuilder) Push() (kubeDs *v1beta1.DaemonSet, err error) {
 			err = errors.Wrapf(err, "failed to update daemon set")
 		}
 	}
-
 	return
 }

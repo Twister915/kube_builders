@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/v1"
 )
 
@@ -58,9 +59,14 @@ func (ns NamespaceBuilder) AsKube() (kubeNs *v1.Namespace) {
 
 func (ns NamespaceBuilder) Push() (kubeNs *v1.Namespace, err error) {
 	kubeNs = ns.AsKube()
-	_, err = ns.kube.iface.CoreV1().Namespaces().Create(kubeNs)
+	err = PushNamespace(kubeNs, ns.kube.iface)
+	return
+}
+
+func PushNamespace(kubeNs *v1.Namespace, iface kubernetes.Interface) (err error) {
+	_, err = iface.CoreV1().Namespaces().Create(kubeNs)
 	if err != nil {
-		err = errors.Wrapf(err, "creating namespace %s", ns.name)
+		err = errors.Wrapf(err, "creating namespace %s", kubeNs.Name)
 	}
 	return
 }

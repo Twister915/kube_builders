@@ -4,8 +4,9 @@ import (
 	"github.com/pkg/errors"
 	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 type ServiceBuilder struct {
@@ -61,26 +62,31 @@ func (svc ServiceBuilder) PortByName(name, target string, port int) ServiceBuild
 	return svc
 }
 
-func (svc ServiceBuilder) AsKube() (service *v1.Service) {
-	service = new(v1.Service)
-	service.Name = svc.name
-	service.Namespace = svc.namespace
-	service.Annotations = svc.annotations
-	service.Labels = svc.labels
-	service.Spec.Type = svc.sType
-	service.Spec.Selector = svc.selector
+func (svc ServiceBuilder) AsKube() (kubeSvc *v1.Service) {
+	kubeSvc = new(v1.Service)
+	kubeSvc.Name = svc.name
+	kubeSvc.Namespace = svc.namespace
+	kubeSvc.Annotations = svc.annotations
+	kubeSvc.Labels = svc.labels
+	kubeSvc.Spec.Type = svc.sType
+	kubeSvc.Spec.Selector = svc.selector
 	if svc.ports != nil {
 		for portName, port := range svc.ports {
-			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{Name: portName, TargetPort: port.target, Port: int32(port.port)})
+			kubeSvc.Spec.Ports = append(kubeSvc.Spec.Ports, v1.ServicePort{Name: portName, TargetPort: port.target, Port: int32(port.port)})
 		}
 	}
 	return
 }
 
-func (svc ServiceBuilder) Push() (service *v1.Service, err error) {
-	service = svc.AsKube()
-	services := svc.kube.iface.CoreV1().Services(svc.namespace)
-	svcFromKube, err := services.Get(service.Name, meta_v1.GetOptions{})
+func (svc ServiceBuilder) Push() (kubeSvc *v1.Service, err error) {
+	kubeSvc = svc.AsKube()
+	err = PushService(kubeSvc, svc.kube.iface)
+	return
+}
+
+func PushService(kubeSvc *v1.Service, iface kubernetes.Interface) (err error) {
+	services := iface.CoreV1().Services(kubeSvc.Namespace)
+	svcFromKube, err := services.Get(kubeSvc.Name, meta_v1.GetOptions{})
 	var f func(*v1.Service) (*v1.Service, error)
 	if kube_errors.IsNotFound(err) {
 		f = services.Create
@@ -88,13 +94,13 @@ func (svc ServiceBuilder) Push() (service *v1.Service, err error) {
 		return
 	} else {
 		f = services.Update
-		svcFromKube.Spec.Ports = service.Spec.Ports
-		svcFromKube.Spec.Type = service.Spec.Type
-		service = svcFromKube
+		svcFromKube.Spec.Ports = kubeSvc.Spec.Ports
+		svcFromKube.Spec.Type = kubeSvc.Spec.Type
+		kubeSvc = svcFromKube
 	}
-	_, err = f(service)
+	_, err = f(kubeSvc)
 	if err != nil {
-		err = errors.Wrapf(err, "creating service %s", svc.name)
+		err = errors.Wrapf(err, "creating service %s", kubeSvc.Name)
 	}
 	return
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/v1"
 )
 
@@ -19,13 +20,7 @@ type SecretBuilder struct {
 }
 
 func (kube *KubeTarget) DoesSecretExist(name, namespace string) (exists bool, err error) {
-	_, err = kube.iface.CoreV1().Secrets(namespace).Get(name, meta_v1.GetOptions{})
-	if kube_errors.IsNotFound(err) {
-		err = nil
-	} else if err == nil {
-		exists = true
-	}
-	return
+	return DoesSecretExist(namespace, name, kube.iface)
 }
 
 func (kube *KubeTarget) GetSecret(name, namespace string) (data map[string][]byte, exists bool, err error) {
@@ -81,9 +76,13 @@ func (secret SecretBuilder) AsKube() (kubeSecret *v1.Secret) {
 
 func (secret SecretBuilder) Push() (kubeSecret *v1.Secret, err error) {
 	kubeSecret = secret.AsKube()
+	err = PushSecret(kubeSecret, secret.kube.iface)
+	return
+}
 
-	secrets := secret.kube.iface.CoreV1().Secrets(secret.namespace)
-	exists, err := secret.kube.DoesSecretExist(secret.namespace, secret.name)
+func PushSecret(kubeSecret *v1.Secret, iface kubernetes.Interface) (err error) {
+	secrets := iface.CoreV1().Secrets(kubeSecret.Namespace)
+	exists, err := DoesSecretExist(kubeSecret.Namespace, kubeSecret.Name, iface)
 	if err != nil {
 		err = errors.Wrapf(err, "could not check if secret exists")
 		return
@@ -98,7 +97,17 @@ func (secret SecretBuilder) Push() (kubeSecret *v1.Secret, err error) {
 
 	_, err = f(kubeSecret)
 	if err != nil {
-		err = errors.Wrapf(err, "creating secret %s", secret.name)
+		err = errors.Wrapf(err, "creating secret %s", kubeSecret.Name)
+	}
+	return
+}
+
+func DoesSecretExist(namespace, name string, iface kubernetes.Interface) (exists bool, err error) {
+	_, err = iface.CoreV1().Secrets(namespace).Get(name, meta_v1.GetOptions{})
+	if kube_errors.IsNotFound(err) {
+		err = nil
+	} else if err == nil {
+		exists = true
 	}
 	return
 }
